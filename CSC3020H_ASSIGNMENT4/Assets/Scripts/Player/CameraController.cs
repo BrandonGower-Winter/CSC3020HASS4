@@ -18,12 +18,24 @@ public class CameraController : MonoBehaviour {
     public Transform tp_camera_transform;
     public Transform tp_target;
     public Transform tp_target_rotation_reference;
+    public Vector2 tp_vertical_rotation_clamp;
     public float tp_horizontal_rotation_speed;
     public float tp_vertical_rotation_speed;
-    public Vector3 feel_nice_offset;
+    public float tp_distance_modifyer;
+    public Vector2 tp_distance_modifyers;
+    public float tp_zoom_rate;
+    public float tp_smooth_rate;
+    private float tp_smooth_collide;
+    private float tp_smooth_free;
+    public Vector2 tp_distance_clamp;
+    public LayerMask tp_layermask;
+    private Vector3 tp_offset;
 
-    private Vector3 offset;
-
+    [Header("Orbit Camera Properties")]
+    public Transform orb_camera;
+    public Transform orb_target;
+    public Vector2 orb_offset;
+    public float orb_speed;
 
     private void Start()
     {
@@ -32,7 +44,10 @@ public class CameraController : MonoBehaviour {
         cameras[2].enabled = false;
 
         //Set 3rd person offset
-        offset = tp_target.position - tp_camera_transform.position + feel_nice_offset;
+        tp_offset = tp_target.position - tp_camera_transform.position;
+
+        tp_smooth_free = tp_smooth_rate;
+        tp_smooth_collide = tp_smooth_rate * 4;
 
     }
 
@@ -62,20 +77,43 @@ public class CameraController : MonoBehaviour {
 
     private void manageOrbit()
     {
-        
+        orb_camera.RotateAround(orb_target.position, Vector3.up,orb_speed * Input.GetAxis("Mouse X"));
+        orb_camera.LookAt(orb_target);
     }
 
     private void manageTP()
     {
-
         tp_target.Rotate(new Vector3(0, Input.GetAxis("Mouse X") * tp_horizontal_rotation_speed));
 
         tp_target_rotation_reference.Rotate(new Vector3(Input.GetAxis("Mouse Y") * -tp_vertical_rotation_speed, 0));
+        Vector3 newAngle = tp_target_rotation_reference.eulerAngles;
+        newAngle.x = clampAngle(newAngle.x, tp_vertical_rotation_clamp.x, tp_vertical_rotation_clamp.y);
+        tp_target_rotation_reference.eulerAngles = newAngle;
 
-        Quaternion rotation = Quaternion.Euler(tp_target_rotation_reference.eulerAngles.x, tp_target.eulerAngles.y, 0);
+        float scrollSpeed = Input.GetAxis("Mouse ScrollWheel");
+        if (scrollSpeed < 0)
+        {
+            tp_distance_modifyer += tp_zoom_rate;
+        }
+        else if(scrollSpeed > 0)
+        {
+            tp_distance_modifyer -= tp_zoom_rate;
+        }
 
-        //Calculate the position that the 3rd person camera should be at.
-        tp_camera_transform.position = tp_target.position - (rotation * offset);
+        tp_distance_modifyer = Mathf.Clamp(tp_distance_modifyer, tp_distance_clamp.x, tp_distance_clamp.y);
+
+
+        float current_y_angle = tp_camera_transform.eulerAngles.y;
+        float desired_y_angle = tp_target.transform.eulerAngles.y;
+        float y_angle = Mathf.LerpAngle(current_y_angle, desired_y_angle, Time.deltaTime * tp_smooth_rate);
+
+        Quaternion rotation = Quaternion.Euler(tp_target_rotation_reference.eulerAngles.x, y_angle, 0);
+
+        Vector3 newPos = tp_target.position - (rotation * tp_offset * tp_distance_modifyer);
+          
+        applyCollisionDetection(ref newPos);
+
+        tp_camera_transform.position = Vector3.Lerp(tp_camera_transform.position, newPos, tp_smooth_rate);
 
         tp_camera_transform.LookAt(tp_target);
 
@@ -129,6 +167,24 @@ public class CameraController : MonoBehaviour {
         if (angle > 180f) return Mathf.Max(angle, 360 + from);
         return Mathf.Min(angle, to);
     }
+
+    private void applyCollisionDetection(ref Vector3 newPos)
+    {
+        RaycastHit collisionDetect = new RaycastHit();
+        
+        if(Physics.Linecast(tp_target.position,newPos,out collisionDetect,tp_layermask))
+        {
+            tp_smooth_rate = tp_smooth_collide;
+            newPos = new Vector3(collisionDetect.point.x + collisionDetect.normal.x * 0.1f, newPos.y, collisionDetect.point.z + collisionDetect.normal.z * 0.1f);
+            
+        }
+        else
+        {
+            tp_smooth_rate = tp_smooth_free;
+        }
+
+    }
+
 }
 
 public enum CameraMode
