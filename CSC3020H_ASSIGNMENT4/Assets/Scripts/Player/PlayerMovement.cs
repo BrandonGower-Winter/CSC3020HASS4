@@ -10,11 +10,9 @@ public class PlayerMovement : MonoBehaviour {
 
     [Header("Speed Values")]
     public float forward_speed;
-    public float forward_speed_clamp;
     public float backward_speed;
-    public float backward_speed_clamp;
     public float sideways_speed;
-    public float sideways_speed_clamp;
+    public float clamp_speed;
 
     [Header("Animation Properties")]
     public Animator player_animations;
@@ -66,24 +64,26 @@ public class PlayerMovement : MonoBehaviour {
             player_rigid.velocity = new Vector3(0, player_rigid.velocity.y);
             return false;
         }
-
-        movePlayer(movement_result);
-        clampSpeed();
+        if(!clampSpeed())
+            movePlayer(movement_result);
+        
         return true;
     }
 
     void movePlayer(Vector3 force)
     {
-        player_rigid.AddRelativeForce(force);
+        player_rigid.AddRelativeForce(force,ForceMode.Acceleration);
     }
 
-    void clampSpeed()
+    bool clampSpeed()
     {
 
-        float zVal = Mathf.Clamp(player_rigid.velocity.z, -backward_speed, forward_speed_clamp);
-        float xVal = Mathf.Clamp(player_rigid.velocity.x, -sideways_speed_clamp, sideways_speed_clamp);
+        if(player_rigid.velocity.magnitude <= clamp_speed)
+        {
+            return false;
+        }
 
-        player_rigid.velocity = new Vector3(xVal, player_rigid.velocity.y, zVal);
+        return true;
 
     }
 }
