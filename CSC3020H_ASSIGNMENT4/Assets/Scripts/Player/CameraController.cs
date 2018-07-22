@@ -36,6 +36,10 @@ public class CameraController : MonoBehaviour {
     public Transform orb_target;
     public Vector2 orb_offset;
     public float orb_speed;
+    public float orb_scroll_speed;
+    public float orb_elevation_speed;
+    public Vector2 orb_camera_clamp;
+    public Vector2 orb_scroll_clamp;
 
     private void Start()
     {
@@ -77,8 +81,46 @@ public class CameraController : MonoBehaviour {
 
     private void manageOrbit()
     {
-        orb_camera.RotateAround(orb_target.position, Vector3.up,orb_speed * Input.GetAxis("Mouse X"));
+
+        if (Input.GetKey(KeyCode.G))
+        {
+            orb_camera.position += Vector3.down * orb_elevation_speed * Time.deltaTime;
+            //Clamp values
+            if (orb_camera.position.y - orb_target.position.y < orb_camera_clamp.x)
+            {
+                orb_camera.position = new Vector3(orb_camera.position.x, orb_target.position.y + orb_camera_clamp.x, orb_camera.position.z);
+            }
+        }
+        else if (Input.GetKey(KeyCode.H))
+        {
+            orb_camera.position += Vector3.up * orb_elevation_speed * Time.deltaTime;
+            //Clamp values
+            if (orb_camera.position.y - orb_target.position.y > orb_camera_clamp.y)
+            {
+                orb_camera.position = new Vector3(orb_camera.position.x, orb_target.position.y + orb_camera_clamp.y, orb_camera.position.z);
+            }
+        }
+
+
+        float scrollSpeed = Input.GetAxis("Mouse ScrollWheel");
+        Vector3 new_scroll_pos = (orb_target.position - orb_camera.position) * orb_scroll_speed * scrollSpeed * Time.deltaTime;
+
+        if(Vector3.Distance(new_scroll_pos + orb_camera.position, orb_target.position) > orb_scroll_clamp.x && Vector3.Distance(new_scroll_pos + orb_camera.position, orb_target.position) < orb_scroll_clamp.y)
+        {
+            orb_camera.position += new_scroll_pos;
+        }
+
+
+        orb_camera.RotateAround(orb_target.position, Vector3.up,orb_speed * Time.deltaTime);
+
+        Vector3 newPos = orb_camera.position;
+
+        applyCollisionDetection(ref newPos, orb_target.position);
+
+        orb_camera.position = Vector3.Lerp(orb_camera.position, newPos, tp_smooth_rate); ;
+
         orb_camera.LookAt(orb_target);
+
     }
 
     private void manageTP()
@@ -111,7 +153,7 @@ public class CameraController : MonoBehaviour {
 
         Vector3 newPos = tp_target.position - (rotation * tp_offset * tp_distance_modifyer);
           
-        applyCollisionDetection(ref newPos);
+        applyCollisionDetection(ref newPos,tp_target.position);
 
         tp_camera_transform.position = Vector3.Lerp(tp_camera_transform.position, newPos, tp_smooth_rate);
 
@@ -162,17 +204,16 @@ public class CameraController : MonoBehaviour {
 
     private float clampAngle(float angle, float from, float to)
     {
-        // accepts e.g. -80, 80
         if (angle < 0f) angle = 360 + angle;
         if (angle > 180f) return Mathf.Max(angle, 360 + from);
         return Mathf.Min(angle, to);
     }
 
-    private void applyCollisionDetection(ref Vector3 newPos)
+    private void applyCollisionDetection(ref Vector3 newPos, Vector3 target)
     {
         RaycastHit collisionDetect = new RaycastHit();
         
-        if(Physics.Linecast(tp_target.position,newPos,out collisionDetect,tp_layermask))
+        if(Physics.Linecast(target,newPos,out collisionDetect,tp_layermask))
         {
             tp_smooth_rate = tp_smooth_collide;
             newPos = new Vector3(collisionDetect.point.x + collisionDetect.normal.x * 0.1f, newPos.y, collisionDetect.point.z + collisionDetect.normal.z * 0.1f);
