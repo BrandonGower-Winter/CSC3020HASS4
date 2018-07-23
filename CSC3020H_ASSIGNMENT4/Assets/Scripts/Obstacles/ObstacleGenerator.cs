@@ -11,12 +11,10 @@ public class ObstacleGenerator : MonoBehaviour {
 
     public Transform base_platform;
 
-    private Vector2 meshSize;
+    public Vector2 meshSize;
 
     void Start ()
     {
-        Mesh mesh = base_platform.GetComponent<MeshFilter>().mesh;
-        meshSize = new Vector2(mesh.bounds.size.x * transform.localScale.x/2f, mesh.bounds.size.z * transform.localScale.z/2f);
 
         for(int i = 0; i < num_of_obstacles; i++)
         {

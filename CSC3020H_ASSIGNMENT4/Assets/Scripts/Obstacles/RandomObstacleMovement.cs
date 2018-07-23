@@ -30,6 +30,11 @@ public class RandomObstacleMovement : MonoBehaviour {
 	
 	void Update ()
     {
+        if(!agent.isOnNavMesh)
+        {
+            return;
+        }
+
         if (!agent.pathPending && agent.remainingDistance < 0.05f)
         {
             target = getRandomPos();
