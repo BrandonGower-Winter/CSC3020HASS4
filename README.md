@@ -9,7 +9,7 @@ Left click to shoot.
 c - change camera
 g & h are used to ajust height in the 3rd person and orbit cameras;
 
-Run in unity or the executable included in the submission.
+Run in unity
 
 Player Model Setup and Movement:
 	Character holds a gun
