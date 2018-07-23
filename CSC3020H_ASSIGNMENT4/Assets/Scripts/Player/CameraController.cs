@@ -100,7 +100,7 @@ public class CameraController : MonoBehaviour {
         }
 
 
-        orb_camera.RotateAround(orb_target.position, Vector3.up,orb_speed * Time.deltaTime);
+        orb_camera.RotateAround(orb_target.position, Vector3.up,orb_speed * Time.deltaTime * Input.GetAxis("Mouse X"));
 
         Vector3 newPos = orb_camera.position;
 
