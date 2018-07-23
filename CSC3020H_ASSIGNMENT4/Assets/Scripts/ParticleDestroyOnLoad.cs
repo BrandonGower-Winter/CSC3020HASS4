@@ -15,7 +15,7 @@ public class ParticleDestroyOnLoad : MonoBehaviour {
         }
 	    if(!particle_system.IsAlive())
         {
-            Destroy(this);
+            Destroy(gameObject);
         }
 	}
 }

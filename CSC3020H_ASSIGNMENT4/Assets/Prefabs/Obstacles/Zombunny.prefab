@@ -184,6 +184,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyModel: {fileID: 1523368878491188}
+  deathParticles: {fileID: 1776576141868608, guid: f7a1009417c0cc44fb82ae4c7868fa84,
+    type: 2}
 --- !u!114 &114166460658555528
 MonoBehaviour:
   m_ObjectHideFlags: 1

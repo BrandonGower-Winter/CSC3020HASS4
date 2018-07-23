@@ -9,6 +9,8 @@ public class Enemy : MonoBehaviour
 
     public GameObject enemyModel;
 
+    public GameObject deathParticles;
+
 	void Start ()
     {
         enemyModel.GetComponent<SkinnedMeshRenderer>().materials[0].mainTexture = RandomGenerator.instance.getRandomMaterial().mainTexture;
@@ -18,6 +20,7 @@ public class Enemy : MonoBehaviour
     public void playDeath()
     {
         RandomGenerator.instance.playAudioClip(deathClipId);
+        Instantiate(deathParticles, transform.position, Quaternion.identity);
         Destroy(gameObject);
     }
 

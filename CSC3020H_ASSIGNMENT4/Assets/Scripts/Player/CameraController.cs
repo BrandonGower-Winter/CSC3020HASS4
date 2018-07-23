@@ -7,6 +7,9 @@ public class CameraController : MonoBehaviour {
     [Header("Cameras")]
     public CameraMode mode;
     public Camera[] cameras;
+
+    public GameObject ui_canvas;
+
     [Header("First Person Properties")]
     public Transform fp_camera_tranform;
     public Transform fp_player_tranform;
@@ -17,19 +20,10 @@ public class CameraController : MonoBehaviour {
     [Header("3rd Person Properties")]
     public Transform tp_camera_transform;
     public Transform tp_target;
-    public Transform tp_target_rotation_reference;
-    public Vector2 tp_vertical_rotation_clamp;
     public float tp_horizontal_rotation_speed;
-    public float tp_vertical_rotation_speed;
-    public float tp_distance_modifyer;
-    public Vector2 tp_distance_modifyers;
-    public float tp_zoom_rate;
-    public float tp_smooth_rate;
-    private float tp_smooth_collide;
-    private float tp_smooth_free;
-    public Vector2 tp_distance_clamp;
-    public LayerMask tp_layermask;
-    private Vector3 tp_offset;
+    public float tp_height_adjustment;
+    public float tp_adjustment_speed;
+    public Vector2 tp_height_clamps;
 
     [Header("Orbit Camera Properties")]
     public Transform orb_camera;
@@ -47,11 +41,6 @@ public class CameraController : MonoBehaviour {
         cameras[1].enabled = false;
         cameras[2].enabled = false;
 
-        //Set 3rd person offset
-        tp_offset = tp_target.position - tp_camera_transform.position;
-
-        tp_smooth_free = tp_smooth_rate;
-        tp_smooth_collide = tp_smooth_rate * 4;
 
     }
 
@@ -115,11 +104,7 @@ public class CameraController : MonoBehaviour {
 
         Vector3 newPos = orb_camera.position;
 
-        applyCollisionDetection(ref newPos, orb_target.position);
-
-        orb_camera.position = Vector3.Lerp(orb_camera.position, newPos, tp_smooth_rate); ;
-
-        orb_camera.LookAt(orb_target);
+        orb_camera.LookAt(new Vector3(tp_target.position.x,tp_target.position.y,tp_target.position.z));
 
     }
 
@@ -127,37 +112,14 @@ public class CameraController : MonoBehaviour {
     {
         tp_target.Rotate(new Vector3(0, Input.GetAxis("Mouse X") * tp_horizontal_rotation_speed));
 
-        tp_target_rotation_reference.Rotate(new Vector3(Input.GetAxis("Mouse Y") * -tp_vertical_rotation_speed, 0));
-        Vector3 newAngle = tp_target_rotation_reference.eulerAngles;
-        newAngle.x = clampAngle(newAngle.x, tp_vertical_rotation_clamp.x, tp_vertical_rotation_clamp.y);
-        tp_target_rotation_reference.eulerAngles = newAngle;
-
-        float scrollSpeed = Input.GetAxis("Mouse ScrollWheel");
-        if (scrollSpeed < 0)
+        if (Input.GetAxis("Mouse Y") != 0)
         {
-            tp_distance_modifyer += tp_zoom_rate;
-        }
-        else if(scrollSpeed > 0)
-        {
-            tp_distance_modifyer -= tp_zoom_rate;
+            float value = -Input.GetAxis("Mouse Y") * tp_adjustment_speed * Time.deltaTime;
+            if (tp_camera_transform.position.y + value > tp_height_clamps.x && tp_camera_transform.position.y + value< tp_height_clamps.y)
+                tp_camera_transform.position += Vector3.up * value;
         }
 
-        tp_distance_modifyer = Mathf.Clamp(tp_distance_modifyer, tp_distance_clamp.x, tp_distance_clamp.y);
-
-
-        float current_y_angle = tp_camera_transform.eulerAngles.y;
-        float desired_y_angle = tp_target.transform.eulerAngles.y;
-        float y_angle = Mathf.LerpAngle(current_y_angle, desired_y_angle, Time.deltaTime * tp_smooth_rate);
-
-        Quaternion rotation = Quaternion.Euler(tp_target_rotation_reference.eulerAngles.x, y_angle, 0);
-
-        Vector3 newPos = tp_target.position - (rotation * tp_offset * tp_distance_modifyer);
-          
-        applyCollisionDetection(ref newPos,tp_target.position);
-
-        tp_camera_transform.position = Vector3.Lerp(tp_camera_transform.position, newPos, tp_smooth_rate);
-
-        tp_camera_transform.LookAt(tp_target);
+        tp_camera_transform.LookAt(new Vector3(tp_target.position.x, tp_target.position.y + tp_height_adjustment, tp_target.position.z));
 
     }
 
@@ -186,14 +148,16 @@ public class CameraController : MonoBehaviour {
             switch (mode)
             {
                 case CameraMode.FIRSTPERSON:
+                    ui_canvas.SetActive(true);
                     cameras[0].enabled = true;
                     cameras[2].enabled = false;
                     break;
                 case CameraMode.THIRDPERSON:
+                    ui_canvas.SetActive(false);
                     cameras[1].enabled = true;
                     cameras[0].enabled = false;
                     break;
-                case CameraMode.ORBIT:
+                case CameraMode.ORBIT:                 
                     cameras[2].enabled = true;
                     cameras[1].enabled = false;
                     break;
@@ -209,22 +173,6 @@ public class CameraController : MonoBehaviour {
         return Mathf.Min(angle, to);
     }
 
-    private void applyCollisionDetection(ref Vector3 newPos, Vector3 target)
-    {
-        RaycastHit collisionDetect = new RaycastHit();
-        
-        if(Physics.Linecast(target,newPos,out collisionDetect,tp_layermask))
-        {
-            tp_smooth_rate = tp_smooth_collide;
-            newPos = new Vector3(collisionDetect.point.x + collisionDetect.normal.x * 0.1f, newPos.y, collisionDetect.point.z + collisionDetect.normal.z * 0.1f);
-            
-        }
-        else
-        {
-            tp_smooth_rate = tp_smooth_free;
-        }
-
-    }
 
 }
 
